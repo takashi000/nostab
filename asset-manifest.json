@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/takashi000/nostab/static/css/main.fd9d478e.css",
+    "main.js": "/takashi000/nostab/static/js/main.0c7734fc.js",
+    "static/js/787.25751056.chunk.js": "/takashi000/nostab/static/js/787.25751056.chunk.js",
+    "index.html": "/takashi000/nostab/index.html",
+    "main.fd9d478e.css.map": "/takashi000/nostab/static/css/main.fd9d478e.css.map",
+    "main.0c7734fc.js.map": "/takashi000/nostab/static/js/main.0c7734fc.js.map",
+    "787.25751056.chunk.js.map": "/takashi000/nostab/static/js/787.25751056.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.fd9d478e.css",
+    "static/js/main.0c7734fc.js"
+  ]
+}

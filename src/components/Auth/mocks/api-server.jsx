@@ -4,12 +4,12 @@ import { getUser, setUser } from './db';
 import { NostrGenPubKey } from '../../Nostr/Nostr';
 
 const handlers = [
-  rest.get('/nostab/auth/me', (req, res, ctx) => {
+  rest.get('/auth/me', (req, res, ctx) => {
     const user = getUser(req.headers.get('Authorization'));
 
     return res(ctx.delay(1000), ctx.json({ user }));
   }),
-  rest.post('/nostab/auth/login', async (req, res, ctx) => {
+  rest.post('/auth/login', async (req, res, ctx) => {
     const parsedBody = (await req.json());
     const user = getUser(parsedBody.privkey);
     if ((user && (parsedBody.mode !== "nip07" && user.pubkey === parsedBody.pubkey && user.pubkey === NostrGenPubKey(parsedBody.privkey))) || 
@@ -29,7 +29,7 @@ const handlers = [
       );
     }
   }),
-  rest.post('/nostab/auth/register', async (req, res, ctx) => {
+  rest.post('/auth/register', async (req, res, ctx) => {
     const parsedBody = (await req.json());
     const user = getUser(parsedBody?.privkey);
     if (!user && parsedBody) {
@@ -56,7 +56,7 @@ const handlers = [
       );
     }
   }),
-  rest.post('/nostab/auth/logout', (req, res, ctx) => {
+  rest.post('/auth/logout', (req, res, ctx) => {
     storage.clearToken();
     return res(ctx.delay(1000), ctx.json({ message: 'Logged out' }));
   }),

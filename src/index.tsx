@@ -6,7 +6,15 @@ import reportWebVitals from './reportWebVitals';
 
 import { worker } from './components/Auth/mocks/api-server'
 
-worker.start();
+worker.start({
+
+  serviceWorker: {
+
+    url: 'https://takashi000.github.io/nostab/mockServiceWorker.js',
+
+  },
+
+});
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

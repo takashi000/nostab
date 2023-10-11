@@ -4,7 +4,7 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import { useForm, SubmitHandler, Controller} from "react-hook-form";
-import { NostrGenPrivKey, NostrGenPubKey } from '../../Nostr/Nostr';
+import { NostrGenPrivKey, NostrGenPubKey, NostrPrivDecode, NostrPubkeyDecode} from '../../Nostr/Nostr';
 
 
 import {
@@ -103,10 +103,14 @@ const LoginForm = () => {
     setValue,
   } = useForm<LoginCredentials>();
   const onSubmit: SubmitHandler<LoginCredentials> = (data) => {
+    // nsecもしくはnpub形式の場合はhexに変換
+    let privkey = NostrPrivDecode(data.privkey);
+    let pubkey = NostrPubkeyDecode(data.pubkey);
     setValue('privkey',"");
     setValue('pubkey',"");
-    registerKey.mutate({privkey:data.privkey, pubkey:data.pubkey, mode:""});
-    login.mutate({privkey:data.privkey, pubkey:data.pubkey, mode: ""});
+
+    registerKey.mutate({privkey:privkey, pubkey:pubkey, mode:""});
+    login.mutate({privkey:privkey, pubkey:pubkey, mode: ""});
   }
 
   return (
@@ -117,11 +121,11 @@ const LoginForm = () => {
       <Controller name="privkey" control={control} 
         rules={{maxLength: {value: 64, message: "64 max"}}}
         render={() => (
-        <TextField type="password" fullWidth label="PrivKey" id="privkey" placeholder="privkey" variant="outlined" margin="dense" {...register("privkey")} />)}/>
+        <TextField type="password" fullWidth label="PrivKey" id="privkey" placeholder="nsec or hex" variant="outlined" margin="dense" {...register("privkey")} />)}/>
       <Controller name="privkey" control={control} 
         rules={{maxLength: {value: 64, message: "64 max"}}}
         render={() => (
-        <TextField fullWidth label="Pubkey" id="pubkey" placeholder="pubkey" variant="outlined" margin="dense" {...register("pubkey")} />)}/>
+        <TextField fullWidth label="Pubkey" id="pubkey" placeholder="npub or hex" variant="outlined" margin="dense" {...register("pubkey")} />)}/>
       <Button disabled={login.isLoading} type="submit" color="primary" variant="contained" size="medium" onClick={handleSubmit(onSubmit)}>
         Login
       </Button>

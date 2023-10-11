@@ -307,7 +307,7 @@ export const SubScreen = () => {
     if (props.subscriptionJSON.length <= 0){
       return null;
     }else{
-      console.log("NOSTR", props.subscriptionJSON);
+      // console.log("NOSTR", props.subscriptionJSON);
       if (SubscrState === 3){
         return props.subscriptionJSON.map(
           (member) => (member.length >= 3 && member[0] === "EVENT" && 

@@ -18,15 +18,27 @@ export const NostrGenPubKey = (sk) => {
     );
 }
 export const NostrPrivEncode = (value) => {
-    const nsec = value !== "nip07" ? nip19.nsecEncode(value) : "";
+    const nsec = value.length === 64 ? nip19.nsecEncode(value) : "";
     return (
         nsec
     );
 }
 export const NostrPubkeyEncode = (value) => {
-    const npub = nip19.npubEncode(value);
+    const npub = value.length === 64 ? nip19.npubEncode(value) : "";
     return (
         npub
+    );
+}
+export const NostrPrivDecode = (value) => {
+    const hex = value.indexOf("nsec") === 0 ? nip19.decode(value) : null;
+    return (
+        hex !== null ? hex.data : value
+    );
+}
+export const NostrPubkeyDecode = (value) => {
+    const hex = value.indexOf("npub") === 0 ? nip19.decode(value) : null;
+    return (
+        hex !== null ? hex.data : value
     );
 }
 export const NostrGetEventHash = (value) => {
@@ -90,7 +102,7 @@ export const Nostr = () => {
         },
         filter:{
             kinds: [1, 6],
-            limit: 25
+            limit: 100
         },
         filter_meta:{
             authors: [],
@@ -126,7 +138,7 @@ export const Nostr = () => {
         filter_home:{
             kinds: [1, 6],
             "#p":[_pkey],
-            limit: 25
+            limit: 100
         },
         profile:{
             name: "",

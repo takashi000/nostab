@@ -63,7 +63,7 @@ export const SearchForm = () => {
             "since":0,
             "search":"",
             "kinds":[1],
-            "limit":50
+            "limit":100
         }
         if (data.ids !== ""){
             NostrData.filter_search.ids.push(data.ids);

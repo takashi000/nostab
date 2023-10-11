@@ -100,7 +100,7 @@ const WebSocketNostrSenderREQ = () => {
       default:
         break;
     }
-
+    
     if (subscription_id !== "" && filter !== ""){
       handleSendClose(subscription_id);
       handleSendReq(subscription_id, filter);
@@ -180,7 +180,6 @@ const WebSocketNostrSenderEVENT = () => {
             handleSendEvent(sender.data);
           }
         }
-        console.log("render2");
         sender.data.content = null;
         return sender;
       }
@@ -189,7 +188,6 @@ const WebSocketNostrSenderEVENT = () => {
     if (sendEvent(NostrData) !== null){
       setNostrData({...NostrData});
     }
-    console.log("render1");
   },[handleSendEvent, NostrData, setNostrData]);
 
   return (<></>);
@@ -218,7 +216,7 @@ const WebSocketNostrListener = () => {
       reconnectAttempts: 10,
       reconnectInterval: (attemptNumber) =>
         Math.min(Math.pow(2, attemptNumber) * 1000, 10000),
-      share:true
+      share:true,
     });
   
   useEffect(() => {
@@ -227,12 +225,12 @@ const WebSocketNostrListener = () => {
 
   const GetMessage = useCallback(async (value) => {
       if (lastMessage !== null) {
-        if(messageHistory.length > 1800){
+        if(messageHistory.length > 800){
           setMessageHistory(messageHistory.filter((word, idx) => idx >= 250));
-        } else if (messageHistory.length === 0 || messageHistory[messageHistory.length-1].data !== lastMessage.data){
-          let member = JSON.parse(lastMessage.data);
-          let metadata = member.length >= 3 && member[0] === "EVENT" && member[1] === NostrData.subscription_id.meta 
-            && member[2].kind === 0 ? member[2] : null;
+        } else if (messageHistory.length === 0 || JSON.stringify(messageHistory[messageHistory.length-1]) !== lastMessage.data){
+          let data = JSON.parse(lastMessage.data);
+          let metadata = data.length >= 3 && data[0] === "EVENT" && data[1] === NostrData.subscription_id.meta 
+            && data[2].kind === 0 ? data[2] : null;
           if (metadata !== null){
             SessionStorage.setItem(metadata.pubkey, JSON.parse(metadata.content));
           }else{
@@ -243,15 +241,14 @@ const WebSocketNostrListener = () => {
                 return await NostrDecyptDM(NostrData, data.pubkey, data.content);
               }
             }
-            setMessageHistory((prev) => prev.concat(lastMessage));
+            // DM復号化
+            if (data.length >= 3 && data[0] === "EVENT" && data[1] === NostrData.subscription_id.directmsg &&
+                data[2].kind === 4 && data[2].content !== ""){
+                  data[2].content = await decryptDM(data[2]);
+            }
+            setMessageHistory((prev) => prev.concat([data]));
             setNostrData({...NostrData, subscriptionJSON:  await Promise.all(messageHistory.map(async (member) => {
-              let data = JSON.parse(member.data);
-              // DM復号化
-              if (data.length >= 3 && data[0] === "EVENT" && data[1] === NostrData.subscription_id.directmsg &&
-                  data[2].kind === 4 && data[2].content !== ""){
-                    data[2].content = await decryptDM(data[2]);
-              }
-              return await data;
+              return member;
           }))});
         }
       }
@@ -294,11 +291,13 @@ export const  WebSocketNostr = () => {
   useEffect(() => {
     // リレーサーバを定周期で切替
     const intervalId = setInterval(() => {
-      WebSock.relay_url_r = NostrData.relay_list[0][relayNumber % NostrData.relay_list[0].length];
-      WebSock.relay_url_w = NostrData.relay_list[1][relayNumber % NostrData.relay_list[1].length];
-      WebSock.relay_url = relayNumber % 2 === 0 ? WebSock.relay_url_r : WebSock.relay_url_w;
-      setWebSock({...WebSock});
-      setrelayNumber((prev) => prev + 1);
+      if(WebSock.connectionStatus === 'Open'){
+        WebSock.relay_url_r = NostrData.relay_list[0][relayNumber % NostrData.relay_list[0].length];
+        WebSock.relay_url_w = NostrData.relay_list[1][relayNumber % NostrData.relay_list[1].length];
+        WebSock.relay_url = relayNumber % 2 === 0 ? WebSock.relay_url_r : WebSock.relay_url_w;
+        setWebSock({...WebSock});
+        setrelayNumber((prev) => prev + 1);
+      }
     }, 800);
     return () => {
         clearInterval(intervalId)

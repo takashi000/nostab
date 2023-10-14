@@ -255,7 +255,7 @@ const WebSocketNostrListener = () => {
       default:
         break;
     }
-    setMessageHistory(messageHistory.filter((word) => word[1] === ignore_subscription_id));
+    setMessageHistory((prev) => prev.filter((word) => word[1] === ignore_subscription_id));
   },[NostrData.subscription_id,SubscrState,messageHistory]);
 
   const GetMessage = useCallback(async (value) => {

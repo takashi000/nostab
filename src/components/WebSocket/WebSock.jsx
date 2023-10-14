@@ -195,6 +195,7 @@ const WebSocketNostrSenderEVENT = () => {
 
 const WebSocketNostrListener = () => {
   const [NostrData, setNostrData] = useContext(NostrContext);
+  const [SubscrState, setSubscrState] = useContext(ContentsContext);
   const [WebSock, setWebSock] = useContext(WebSockContext);
   //Public API that will echo messages sent to it back to the client
   const [socketUrl, setSocketUrl] = useState(null);
@@ -223,11 +224,44 @@ const WebSocketNostrListener = () => {
     setSocketUrl(getSocketUrl(WebSock.relay_url));
   },[WebSock, getSocketUrl]);
 
+  const DestoryHistory = useCallback(() => {
+    if (messageHistory.length <= 800){
+      return null;
+    }
+    let ignore_subscription_id = "";
+    switch(SubscrState){
+      case 0:
+        ignore_subscription_id = NostrData.subscription_id.mymeta;
+        break;
+      case 1:
+        break;
+      case 2:
+        ignore_subscription_id = NostrData.subscription_id.mycontact;
+        break;
+      case 3:
+        ignore_subscription_id = NostrData.subscription_id.home;
+        break;
+      case 4:
+        ignore_subscription_id = NostrData.subscription_id.search;
+        break;
+      case 5:
+        ignore_subscription_id = NostrData.subscription_id.directmsg
+        break;
+      case 6:
+        ignore_subscription_id = NostrData.subscription_id.notify
+        break;
+      case 7:
+        break;
+      default:
+        break;
+    }
+    setMessageHistory(messageHistory.filter((word) => word[1] === ignore_subscription_id));
+  },[NostrData.subscription_id,SubscrState,messageHistory]);
+
   const GetMessage = useCallback(async (value) => {
       if (lastMessage !== null) {
-        if(messageHistory.length > 800){
-          setMessageHistory(messageHistory.filter((word, idx) => idx >= 250));
-        } else if (messageHistory.length === 0 || JSON.stringify(messageHistory[messageHistory.length-1]) !== lastMessage.data){
+        DestoryHistory();
+        if (messageHistory.length === 0 || JSON.stringify(messageHistory[messageHistory.length-1]) !== lastMessage.data){
           let data = JSON.parse(lastMessage.data);
           let metadata = data.length >= 3 && data[0] === "EVENT" && data[1] === NostrData.subscription_id.meta 
             && data[2].kind === 0 ? data[2] : null;
@@ -253,7 +287,7 @@ const WebSocketNostrListener = () => {
         }
       }
     }
-  },[lastMessage, NostrData, messageHistory, setNostrData]);
+  },[lastMessage, NostrData, messageHistory, setNostrData, DestoryHistory]);
   useEffect(() => {
     // リレーからREQ受信
     GetMessage(lastMessage);

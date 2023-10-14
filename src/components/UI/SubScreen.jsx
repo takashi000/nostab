@@ -18,7 +18,7 @@ import InfiniteScroll from 'react-infinite-scroller';
 import SessionStorage from 'react-native-session-storage';
 import reactStringReplace from "react-string-replace";
 
-import { NostrContext ,NostrPubkeyEncode, NostrDecyptDM} from '../Nostr/Nostr';
+import { NostrContext ,NostrPubkeyEncode} from '../Nostr/Nostr';
 import { useContext, useState, useEffect, useCallback} from 'react';
 import { ContentsContext } from './Contents';
 

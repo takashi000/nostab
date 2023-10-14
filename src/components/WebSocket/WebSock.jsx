@@ -55,7 +55,7 @@ const WebSocketNostrSenderREQ = () => {
     // 通知購読REQ要求
     const intervalId = setInterval(() => {
       SendREQ();
-    }, 5000);
+    }, 6000);
     return () => {
         clearInterval(intervalId)
     }
@@ -257,7 +257,6 @@ const WebSocketNostrListener = () => {
     }
     setMessageHistory((prev) => prev.filter((word) => word[1] === ignore_subscription_id));
   },[NostrData.subscription_id,SubscrState,messageHistory]);
-
   const GetMessage = useCallback(async (value) => {
       if (lastMessage !== null) {
         DestoryHistory();
@@ -280,10 +279,15 @@ const WebSocketNostrListener = () => {
                 data[2].kind === 4 && data[2].content !== ""){
                   data[2].content = await decryptDM(data[2]);
             }
+            // 検索日時更新
+            if (data.length >= 3 && data[0] === "EVENT" && data[1] === NostrData.subscription_id.search &&
+              (data[2].kind === 1 || data[2].kind === 6)){
+                NostrData.lastDate_search = data[2].created_at-1;
+            }
             setMessageHistory((prev) => prev.concat([data]));
             setNostrData({...NostrData, subscriptionJSON:  await Promise.all(messageHistory.map(async (member) => {
               return member;
-          }))});
+            }))});
         }
       }
     }
@@ -292,6 +296,19 @@ const WebSocketNostrListener = () => {
     // リレーからREQ受信
     GetMessage(lastMessage);
   }, [lastMessage, GetMessage]);
+
+  const [prevSubscr, setprevSubscr] = useState(null);
+  useEffect(() => {
+    if(NostrData.filter_search !== null && prevSubscr === 4 && SubscrState !== 4){
+      // 検索タブからほかのタブに遷移したとき、検索結果を削除する
+      let ignore_subscription_id = NostrData.subscription_id.search;
+      setMessageHistory((prev) => prev.filter((word) => word[1] !== ignore_subscription_id));
+      setNostrData({...NostrData, filter_search: null});
+    }
+    return () => {
+      setprevSubscr(SubscrState);
+    }
+  },[SubscrState, prevSubscr, NostrData, setNostrData]);
 
   return (<></>);
 }

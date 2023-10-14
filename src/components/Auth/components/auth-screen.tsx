@@ -19,7 +19,7 @@ export const AuthScreen = () => {
   return (
     <div>
       <Typography  variant="h5" component="h5">
-        Nostab Beta (0.0.2)
+        Nostab Beta (0.0.3)
       </Typography>
       {mode === 'login' && (
         <>

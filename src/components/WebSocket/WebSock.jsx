@@ -22,7 +22,7 @@ const WebSocketNostrSenderREQ = () => {
       }, 100);
     });
   }, []);
-  const { sendMessage} = useWebSocket(
+  const { sendMessage } = useWebSocket(
     socketUrl,
     {
       shouldReconnect: () => true,
@@ -41,25 +41,38 @@ const WebSocketNostrSenderREQ = () => {
 
   const SendREQ = useCallback(() => {
     handleSendClose(NostrData.subscription_id.notify);
-    handleSendClose(NostrData.subscription_id.mymeta);
     handleSendClose(NostrData.subscription_id.myrelay);
-    handleSendClose(NostrData.subscription_id.meta);
-    handleSendReq(NostrData.subscription_id.meta,NostrData.filter_meta);
     handleSendReq(NostrData.subscription_id.myrelay, NostrData.filter_myrelay);
-    handleSendReq(NostrData.subscription_id.mymeta, NostrData.filter_mymeta);
     handleSendReq(NostrData.subscription_id.notify, NostrData.filter_notify);
   },[handleSendReq, handleSendClose,
       NostrData.subscription_id,
-      NostrData.filter_meta, NostrData.filter_mymeta, NostrData.filter_notify, NostrData.filter_myrelay]);
+      NostrData.filter_notify, NostrData.filter_myrelay]);
+  const SendREQ_meta = useCallback(() => {
+    handleSendClose(NostrData.subscription_id.mymeta);
+    handleSendClose(NostrData.subscription_id.meta);
+    handleSendReq(NostrData.subscription_id.meta,NostrData.filter_meta);
+    handleSendReq(NostrData.subscription_id.mymeta, NostrData.filter_mymeta);
+  },[handleSendReq, handleSendClose,
+      NostrData.subscription_id, NostrData.filter_meta, NostrData.filter_mymeta]);
+  const [prevconnection, setprevconnection] = useState('Uninstantiated');
   useEffect(() => {
-    // 通知購読REQ要求
-    const intervalId = setInterval(() => {
+    if (prevconnection !== 'Open' && WebSock.connectionStatus === 'Open'){
+      // リレーサーバとコネクション確立時に通知購読REQ要求
       SendREQ();
+    }
+    return () => {
+      setprevconnection(WebSock.connectionStatus);
+    }
+  },[WebSock, SendREQ, prevconnection]);
+  useEffect(() => {
+    // kind0購読を定期要求
+    const intervalId = setInterval(() => {
+      SendREQ_meta();
     }, 6000);
     return () => {
-        clearInterval(intervalId)
+      clearInterval(intervalId);
     }
-  },[SendREQ]);
+  },[SendREQ_meta]);
 
   useEffect(() => {
     // 表示タブごとのREQ要求
@@ -279,10 +292,26 @@ const WebSocketNostrListener = () => {
                 data[2].kind === 4 && data[2].content !== ""){
                   data[2].content = await decryptDM(data[2]);
             }
-            // 検索日時更新
+            // 検索最終日時更新
             if (data.length >= 3 && data[0] === "EVENT" && data[1] === NostrData.subscription_id.search &&
-              (data[2].kind === 1 || data[2].kind === 6)){
-                NostrData.lastDate_search = data[2].created_at-1;
+                (data[2].kind === 1 || data[2].kind === 6)){
+                NostrData.lastDate.search = data[2].created_at-1;
+            }
+            // 通知最終日時更新
+            function MatchTags(prop, tag){
+              let index = -1;
+              prop.forEach((item, idx) => {
+                if (item[0] === "p" && item[1] === tag){
+                  index = idx;
+                }
+              });
+              return index >= 0 ? true : false;
+            }
+            if (data.length >= 3 && data[0] === "EVENT" && data[1] === NostrData.subscription_id.notify &&
+                (data[2].kind === 1 || data[2].kind === 3 || data[2].kind === 4 || data[2].kind === 6 || data[2].kind === 7) &&
+                MatchTags(data[2].tags, NostrData.filter_notify["#p"][0])){
+                  NostrData.lastDate.notify = data[2].created_at-1;
+                  NostrData.filter_notify.until = NostrData.lastDate.notify;
             }
             setMessageHistory((prev) => prev.concat([data]));
             setNostrData({...NostrData, subscriptionJSON:  await Promise.all(messageHistory.map(async (member) => {
@@ -293,7 +322,7 @@ const WebSocketNostrListener = () => {
     }
   },[lastMessage, NostrData, messageHistory, setNostrData, DestoryHistory]);
   useEffect(() => {
-    // リレーからREQ受信
+    // リレーから受信REQを取得
     GetMessage(lastMessage);
   }, [lastMessage, GetMessage]);
 
@@ -365,164 +394,3 @@ export const  WebSocketNostr = () => {
     </>
   );
 }
-
-/*
-export const  WebSocketNostr = () => {
-  const [NostrData, setNostrData] = useContext(NostrContext);
-  const [SubscrState, setSubscrState] = useContext(ContentsContext);
-  const rs_url = NostrData.rs[0];
-  //Public API that will echo messages sent to it back to the client
-  const [socketUrl, setSocketUrl] = useState(rs_url);
-  const [messageHistory, setMessageHistory] = useState([]);
-
-  const getSocketUrl = useCallback((url) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(url);
-      }, 2000);
-    });
-  }, []);
-  const { sendMessage, lastMessage, readyState} = useWebSocket(
-    socketUrl,
-    {
-      shouldReconnect: () => true,
-      reconnectAttempts: 10,
-      reconnectInterval: (attemptNumber) =>
-        Math.min(Math.pow(2, attemptNumber) * 1000, 10000),
-    });
-    const connectionStatus = {
-      [ReadyState.CONNECTING]: 'Connecting',
-      [ReadyState.OPEN]: 'Open',
-      [ReadyState.CLOSING]: 'Closing',
-      [ReadyState.CLOSED]: 'Closed',
-      [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
-    }[readyState];
-  
-  const handleSendEvent   = useCallback((data) => sendMessage(JSON.stringify(["EVENT",data])),[sendMessage]);
-  const handleSendReq     = useCallback((id, filter) => sendMessage(JSON.stringify(["REQ",id,filter])), [sendMessage]);
-  const handleSendClose   = useCallback((id) => sendMessage(JSON.stringify(["CLOSE",id])),[sendMessage]);
-
-  const GetMessage = useCallback((value) => {
-      if (lastMessage !== null) {
-        if(messageHistory.length > 800){
-          setMessageHistory(messageHistory.filter((word, idx) => idx >= 250));
-        } else if (messageHistory.length === 0 || messageHistory[messageHistory.length-1].data !== lastMessage.data){
-          let member = JSON.parse(lastMessage.data);
-          let metadata = member.length >= 3 && member[0] === "EVENT" && member[1] === NostrData.subscription_id.meta 
-            && member[2].kind === 0 ? member[2] : null;
-          if (metadata !== null){
-            SessionStorage.setItem(metadata.pubkey, JSON.parse(metadata.content));
-          }else{
-            setMessageHistory((prev) => prev.concat(lastMessage));
-            setNostrData({...NostrData, subscriptionJSON:  messageHistory.map((member) => {
-              return JSON.parse(member.data);
-          })});
-        }
-      }
-    }
-  },[lastMessage, NostrData, messageHistory, setNostrData]);
-  useEffect(() => {
-    // リレーからREQ受信
-    GetMessage(lastMessage);
-  }, [lastMessage, GetMessage]);
-
-  const SendREQ = useCallback(() => {
-    handleSendClose(NostrData.subscription_id.notify);
-    handleSendClose(NostrData.subscription_id.mymeta);
-    handleSendClose(NostrData.subscription_id.myrelay);
-    handleSendClose(NostrData.subscription_id.meta);
-    handleSendReq(NostrData.subscription_id.meta,NostrData.filter_meta);
-    handleSendReq(NostrData.subscription_id.myrelay, NostrData.filter_myrelay);
-    handleSendReq(NostrData.subscription_id.mymeta, NostrData.filter_mymeta);
-    handleSendReq(NostrData.subscription_id.notify, NostrData.filter_notify);
-  },[handleSendReq, handleSendClose,
-      NostrData.subscription_id,
-      NostrData.filter_meta, NostrData.filter_mymeta, NostrData.filter_notify, NostrData.filter_myrelay]);
-  useEffect(() => {
-    // 通知購読REQ要求
-    const intervalId = setInterval(() => {
-      SendREQ();
-    }, 5000);
-    return () => {
-        clearInterval(intervalId)
-    }
-  },[SendREQ]);
-
-  useEffect(() => {
-    // EVENT 送信
-    if (NostrData.data.content !== null)
-    {
-      if (NostrData.data.kind === 4){
-        NostrData.directmsg.then((value) => {
-          NostrData.data.content = value;
-          NostrData.data.id = NostrGetEventHash(NostrData);
-          NostrData.data.sig = NostrGetSignature(NostrData);
-          handleSendEvent(NostrData.data);
-          NostrData.directmsg = "";
-        });
-      }else{
-        NostrData.data.id = NostrGetEventHash(NostrData);
-        NostrData.data.sig = NostrGetSignature(NostrData);
-        handleSendEvent(NostrData.data);
-      }
-    }
-    return () => {
-      NostrData.data.content = null;
-    }
-  },[handleSendEvent, NostrData, NostrData.data, NostrData.directmsg]);
-
-  useEffect(() => {
-    // 表示タブごとのREQ要求
-    let subscription_id = "", filter = "";
-    switch(SubscrState){
-      case 0:
-        subscription_id = NostrData.subscription_id.mymeta;
-        filter = NostrData.filter_mymeta;
-        break;
-      case 1:
-        break;
-      case 2:
-        subscription_id = NostrData.subscription_id.mycontact;
-        filter = NostrData.filter_mycontact;
-        break;
-      case 3:
-        subscription_id = NostrData.subscription_id.home;
-        filter = NostrData.filter_home;
-        break;
-      case 4:
-        if(NostrData.filter_search !== null){
-          subscription_id = NostrData.subscription_id.search;
-          filter = NostrData.filter_search;
-        }
-        break;
-      case 5:
-        subscription_id = NostrData.subscription_id.directmsg;
-        filter = NostrData.filter_dm;
-        break;
-      case 6:
-        subscription_id = NostrData.subscription_id.notify;
-        filter = NostrData.filter_notify;
-        break;
-      case 7:
-        subscription_id = NostrData.subscription_id.myrelay;
-        filter = NostrData.filter_myrelay;
-        break;
-      default:
-        break;
-    }
-
-    if (subscription_id !== "" && filter !== ""){
-      handleSendClose(subscription_id);
-      handleSendReq(subscription_id, filter);
-    }
-  },[SubscrState, NostrData.subscription_id,
-    NostrData.filter, NostrData.filter_home, NostrData.filter_dm, 
-    NostrData.filter_mycontact, NostrData.filter_mymeta, NostrData.filter_search,
-    NostrData.filter_notify,NostrData.filter_myrelay,
-    handleSendReq, handleSendClose]);
-
-  return (
-    <></>
-  );
-};
-*/

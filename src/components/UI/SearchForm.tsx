@@ -79,7 +79,7 @@ export const SearchForm = () => {
             let date = new Date(data.until);
             NostrData.filter_search.until =  Math.round(date.getTime() / 1000);
         }else{
-            NostrData.filter_search.until = NostrData.lastDate_search;
+            NostrData.filter_search.until = NostrData.lastDate.search;
         }
         if(data.since !== ""){
             let date = new Date(data.since);

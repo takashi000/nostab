@@ -171,7 +171,10 @@ export const Nostr = () => {
             tags:[]
         },
         subscriptionJSON:[],
-        lastDate_search: Math.floor(date / 1000)
+        lastDate:{
+            search: Math.floor(date / 1000),
+            notify: Math.floor(date / 1000)
+        }
     });
 
     function getProfileContent(props){

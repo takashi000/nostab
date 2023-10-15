@@ -84,8 +84,7 @@ export const Nostr = () => {
             content: null,
             sig: null
         },
-        relay:[["r", _rs, "read"],["r",_rs4,"write"]],
-        relay_list:[[_rs],[_rs4]],
+        relay: null,
         contacts:[],
         directmsg:"",
         subscription_id:{ 
@@ -187,10 +186,43 @@ export const Nostr = () => {
             return null;
         }
     }
+
     useEffect(() => {
         let profile = getProfileContent(NostrData); 
         if (profile !== null){
             setNostrData({...NostrData, profile:profile});
+        }
+        if(NostrData.relay === null){
+            // ダミー
+            NostrData.relay         = [["r", null, "read"],["r", null, "write"]];
+
+            let nip07_rs = window.nostr?.getRelays();
+            if (nip07_rs === undefined){
+                // デフォルトのリレーサーバ
+                NostrData.relay         = [["r", _rs, "read"],["r",_rs4, "write"]];
+            }else{
+                nip07_rs.then((value) => {
+                    NostrData.relay = Object.entries(value).map((item) => {
+                        let mode = "";
+                        if (item[1].read === true && item[1].write === false){
+                            mode = "read";
+                        }else if(item[1].read === false && item[1].write === true){
+                            mode = "write";
+                        }else{
+                            mode = "";
+                        }
+                        if(mode === ""){
+                            return ["r", item[0]];
+                        }else{
+                            return ["r", item[0], mode];
+                        }
+                    });
+                    setNostrData({...NostrData});
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }
+            setNostrData({...NostrData});
         }
     },[NostrData, setNostrData]);
 

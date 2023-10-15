@@ -6,6 +6,7 @@ import { useForm, SubmitHandler, Controller} from "react-hook-form";
 import TextField from '@mui/material/TextField';
 import Button from "@mui/material/Button";
 import Switch from '@mui/material/Switch';
+import { Checkbox } from '@mui/material';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { NostrContext} from '../Nostr/Nostr';
@@ -30,9 +31,13 @@ const switchlabel = { inputProps: { 'aria-label': 'R/W' } };
 
 const RelayListForm = (props:Inputs) => {
   const [NostrData, setNostrData] = useContext(NostrContext);
-  const [checked, setChecked] = useState(false);
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setChecked(event.target.checked);
+  const [readchecked, setreadChecked] = useState(false);
+  const [writechecked, setwriteChecked] = useState(false);
+  const handlereadChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setreadChecked(event.target.checked);
+  };
+  const handlewriteChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setwriteChecked(event.target.checked);
   };
   const {
         register,
@@ -44,28 +49,23 @@ const RelayListForm = (props:Inputs) => {
     let index = props.index;
     let url = data.url;
     NostrData.relay.splice(index, 1);
-
-    // NOTE: 上から最初に見つかったリレーを削除する (同じ設定が重複する場合は必ず先のものが削除される!!)
-    if(checked){
-      index = NostrData.relay_list[1].findIndex((element:string) => element === url);
-      NostrData.relay_list[1].splice(index, 1);
-    }else{
-      index = NostrData.relay_list[0].findIndex((element:string) => element === url);
-      NostrData.relay_list[0].splice(index, 1);
-    }
-    console.log(NostrData.relay, NostrData.relay_list);
     setNostrData({...NostrData});
   }
 
   const [SubscrState, setSubscrState] = useContext(ContentsContext);
   const initRelay = useCallback(() => {
       setValue('url', props.url);
-      if(props.mode === "write"){
-        setChecked(true);
+      if(props.mode === "read"){
+        setreadChecked(true);
+        setwriteChecked(false);
+      }else if (props.mode === "write"){
+        setreadChecked(false);
+        setwriteChecked(true);
       }else{
-        setChecked(false);
+        setreadChecked(true);
+        setwriteChecked(true);        
       }
-  },[setValue, setChecked, props]);
+  },[setValue, setreadChecked, setwriteChecked, props]);
 
   useEffect(() => {
       if(SubscrState === 7){
@@ -73,6 +73,30 @@ const RelayListForm = (props:Inputs) => {
       }
   },[SubscrState, initRelay]);
 
+  const _CheckBoxRW = () => {
+    if (readchecked === true && writechecked === false){
+      return(
+        <>
+          <FormControlLabel control={<Checkbox checked={readchecked} onChange={(e) => handlereadChange(e)} {...switchlabel} disabled defaultChecked size="small"/>} label="R"/>
+          <FormControlLabel control={<Checkbox checked={writechecked} onChange={(e) => handlewriteChange(e)} {...switchlabel} disabled size="small"/>} label="W"/>
+        </>
+      );
+    }else if(readchecked === false && writechecked === true){
+      return(
+        <>
+          <FormControlLabel control={<Checkbox checked={readchecked} onChange={(e) => handlereadChange(e)} {...switchlabel} disabled size="small"/>} label="R"/>
+          <FormControlLabel control={<Checkbox checked={writechecked} onChange={(e) => handlewriteChange(e)} {...switchlabel} disabled defaultChecked size="small"/>} label="W"/>
+        </>
+      );
+    }else{
+      return(
+      <>
+        <FormControlLabel control={<Checkbox checked={readchecked} onChange={(e) => handlereadChange(e)} {...switchlabel} disabled defaultChecked size="small"/>} label="R"/>
+        <FormControlLabel control={<Checkbox checked={writechecked} onChange={(e) => handlewriteChange(e)} {...switchlabel} disabled defaultChecked size="small"/>} label="W"/>
+      </>
+      );
+    }
+  }
   return (
       /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
       <Box sx={{ width: 'md', height: 'md', maxWidth: '100%'}}>
@@ -83,12 +107,7 @@ const RelayListForm = (props:Inputs) => {
                 <ListItem>
                   <TextField sx={{ width: 'md', height: 'md', maxWidth: '100%'}} fullWidth label="url" id="url" size="small"
                     placeholder="wss://" multiline variant="outlined" margin="dense" {...register("url")} />
-                  <FormControlLabel control={
-                    checked ? 
-                    <Switch checked={checked} onChange={(e) => handleChange(e)} {...switchlabel} disabled defaultChecked />
-                    :
-                    <Switch checked={checked} onChange={(e) => handleChange(e)} {...switchlabel} disabled />
-                    } label="R/W"/>
+                  <_CheckBoxRW />
                   <Button type="submit" color="primary" variant="contained" size="small" onClick={handleSubmit(onSubmit)}>削除</Button>
                 </ListItem>
                 </List>)}/>          
@@ -98,9 +117,13 @@ const RelayListForm = (props:Inputs) => {
 
 export const RelayAddForm = () => {
   const [NostrData, setNostrData] = useContext(NostrContext);
-  const [checked, setChecked] = useState(false);
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setChecked(event.target.checked);
+  const [readchecked, setreadChecked] = useState(false);
+  const [writechecked, setwriteChecked] = useState(false);
+  const handlereadChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setreadChecked(event.target.checked);
+  };
+  const handlewriteChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setwriteChecked(event.target.checked);
   };
 
   const {
@@ -111,19 +134,20 @@ export const RelayAddForm = () => {
   } = useForm<Inputs>();
   const onSubmit: SubmitHandler<Inputs> = (data) => {
 
-    NostrData.data.kind = 10003;
+    NostrData.data.kind = 10002;
     NostrData.data.pubkey = NostrData.pkey;
     NostrData.data.created_at = Math.floor(Date.now() / 1000);
     NostrData.data.content = "";
-    let mode = checked ? "write" : "read";
-    NostrData.relay.push(["r", data.url, mode]);
     NostrData.data.tags = NostrData.relay;
-
-    if(mode === 'read'){
-      NostrData.relay_list[0] = NostrData.relay_list[0].concat(data.url);
+    
+    if(readchecked === true && writechecked === false){
+      NostrData.relay.push(["r", data.url, "read"]);
+    }else if(readchecked === false && writechecked === true){
+      NostrData.relay.push(["r", data.url, "write"]);
     }else{
-      NostrData.relay_list[1] = NostrData.relay_list[1].concat(data.url);
+      NostrData.relay.push(["r", data.url]);
     }
+    
     setValue('url',"");
     setNostrData({...NostrData});
   }
@@ -138,7 +162,8 @@ export const RelayAddForm = () => {
                   <ListItem>
                     <TextField sx={{ p:1, width: 'md', height: 'md', maxWidth: '100%'}} fullWidth label="url" id="url" size="small"
                       placeholder="wss://" multiline variant="outlined" margin="dense" {...register("url")} />
-                    <FormControlLabel control={<Switch checked={checked} onChange={(e) => handleChange(e)} {...switchlabel} />} label="R/W"/>
+                    <FormControlLabel control={<Checkbox checked={readchecked} onChange={(e) => handlereadChange(e)} {...switchlabel} size="small"/>} label="R"/>
+                    <FormControlLabel control={<Checkbox checked={writechecked} onChange={(e) => handlewriteChange(e)} {...switchlabel} size="small"/>} label="W"/>
                     <Button type="submit" color="primary" variant="contained" size="small" onClick={handleSubmit(onSubmit)}>追加</Button>
                   </ListItem>
                 </List>)}/>            
@@ -151,7 +176,7 @@ const  renderRow = (value:_kind10002_tags, idx:number) => {
     return (<></>);
   }
   const relay_url = value[1];
-  const relay_mode = value[2] !== undefined ? value[2] : "read";
+  const relay_mode = value[2] !== undefined ? value[2] : "rw";
 
   return (
     <RelayListForm url={relay_url} mode={relay_mode} index={idx}/>

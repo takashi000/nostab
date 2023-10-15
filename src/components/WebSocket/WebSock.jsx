@@ -355,9 +355,9 @@ export const  WebSocketNostr = () => {
       share: true
     });
   const [WebSock, setWebSock] = useState({
-    relay_url: NostrData.relay_list[0][0],
-    relay_url_r: NostrData.relay_list[0][0],
-    relay_url_w: NostrData.relay_list[1][0],
+    relay_url: null,
+    relay_url_r: null,
+    relay_url_w: null,
     connectionStatus:{
       [ReadyState.CONNECTING]: 'Connecting',
       [ReadyState.OPEN]: 'Open',
@@ -371,18 +371,30 @@ export const  WebSocketNostr = () => {
   useEffect(() => {
     // リレーサーバを定周期で切替
     const intervalId = setInterval(() => {
-      if(WebSock.connectionStatus === 'Open'){
-        WebSock.relay_url_r = NostrData.relay_list[0][relayNumber % NostrData.relay_list[0].length];
-        WebSock.relay_url_w = NostrData.relay_list[1][relayNumber % NostrData.relay_list[1].length];
+      let relayIndex = relayNumber % NostrData.relay.length;
+      if(NostrData.relay.length >= 1 &&
+          (WebSock.connectionStatus === 'Open'|| WebSock.connectionStatus === 'Uninstantiated' || WebSock.connectionStatus === 'Closed' ||
+          WebSock.relay_url === null || WebSock.relay_url_r === null || WebSock.relay_url_w === null)){
+        let relay_url_r = NostrData.relay[relayIndex].length === 2 || 
+                      NostrData.relay[relayIndex][2] === 'read' ? NostrData.relay[relayIndex][1] : null;
+        let relay_url_w = NostrData.relay[relayIndex].length === 2 || 
+                      NostrData.relay[relayIndex][2] === 'write' ? NostrData.relay[relayIndex][1] : null;
+        if (relay_url_r !== null){
+          WebSock.relay_url_r = relay_url_r;
+        }
+        if (relay_url_w !== null){
+          WebSock.relay_url_w = relay_url_w;
+        }
         WebSock.relay_url = relayNumber % 2 === 0 ? WebSock.relay_url_r : WebSock.relay_url_w;
         setWebSock({...WebSock});
         setrelayNumber((prev) => prev + 1);
+        console.log("WebSock", WebSock);
       }
     }, 800);
     return () => {
-        clearInterval(intervalId)
+      clearInterval(intervalId);
     }
-  },[WebSock, NostrData.relay_list, relayNumber]);
+  },[WebSock, NostrData.relay, relayNumber]);
 
   return (
     <>

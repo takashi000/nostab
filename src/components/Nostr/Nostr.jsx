@@ -172,7 +172,8 @@ export const Nostr = () => {
         subscriptionJSON:[],
         lastDate:{
             search: Math.floor(date / 1000),
-            notify: Math.floor(date / 1000)
+            notify: Math.floor(date / 1000),
+            home: Math.floor(date / 1000),
         }
     });
 

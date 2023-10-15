@@ -297,6 +297,12 @@ const WebSocketNostrListener = () => {
                 (data[2].kind === 1 || data[2].kind === 6)){
                 NostrData.lastDate.search = data[2].created_at-1;
             }
+            // ホーム最終日時更新
+            if (data.length >= 3 && data[0] === "EVENT" && data[1] === NostrData.subscription_id.home &&
+                (data[2].kind === 1 || data[2].kind === 6)){
+                  NostrData.lastDate.home = data[2].created_at-1;
+                  NostrData.filter_home.until = NostrData.lastDate.home;
+            }
             // 通知最終日時更新
             function MatchTags(prop, tag){
               let index = -1;
@@ -345,6 +351,16 @@ const WebSocketNostrListener = () => {
 export const  WebSocketNostr = () => {
   const [NostrData, setNostrData] = useContext(NostrContext);
   const [socketUrl, setSocketUrl] = useState(null);
+  const getSocketUrl = useCallback((url) => {
+    if(url === null || url === undefined){
+      return null;
+    }
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(url);
+      }, 100);
+    });
+  }, []);
   const {readyState} = useWebSocket(
     socketUrl,
     {
@@ -373,7 +389,7 @@ export const  WebSocketNostr = () => {
     const intervalId = setInterval(() => {
       let relayIndex = relayNumber % NostrData.relay.length;
       if(NostrData.relay.length >= 1 &&
-          (WebSock.connectionStatus === 'Open'|| WebSock.connectionStatus === 'Uninstantiated' || WebSock.connectionStatus === 'Closed' ||
+          (WebSock.connectionStatus === 'Open'||
           WebSock.relay_url === null || WebSock.relay_url_r === null || WebSock.relay_url_w === null)){
         let relay_url_r = NostrData.relay[relayIndex].length === 2 || 
                       NostrData.relay[relayIndex][2] === 'read' ? NostrData.relay[relayIndex][1] : null;
@@ -395,6 +411,9 @@ export const  WebSocketNostr = () => {
     }
   },[WebSock, NostrData.relay, relayNumber]);
 
+  useEffect(() => {
+    setSocketUrl(getSocketUrl(WebSock.relay_url));
+  },[WebSock, getSocketUrl]);
   return (
     <>
       <WebSockContext.Provider value = {[WebSock, setWebSock]}>

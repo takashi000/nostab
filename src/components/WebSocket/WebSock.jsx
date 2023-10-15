@@ -388,7 +388,6 @@ export const  WebSocketNostr = () => {
         WebSock.relay_url = relayNumber % 2 === 0 ? WebSock.relay_url_r : WebSock.relay_url_w;
         setWebSock({...WebSock});
         setrelayNumber((prev) => prev + 1);
-        console.log("WebSock", WebSock);
       }
     }, 800);
     return () => {

@@ -196,11 +196,11 @@ export const Nostr = () => {
             // ダミー
             NostrData.relay         = [["r", null, "read"],["r", null, "write"]];
 
-            let nip07_rs = window.nostr?.getRelays();
-            if (nip07_rs === undefined){
+            if (NostrData.skey !== "nip07"){
                 // デフォルトのリレーサーバ
                 NostrData.relay         = [["r", _rs, "read"],["r",_rs4, "write"]];
             }else{
+                let nip07_rs = window.nostr?.getRelays();
                 nip07_rs.then((value) => {
                     NostrData.relay = Object.entries(value).map((item) => {
                         let mode = "";

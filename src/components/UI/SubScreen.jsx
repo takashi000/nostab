@@ -61,14 +61,18 @@ function handleOnReplay(user_name, value, NostrData, setNostrData){
 function handleOnContact(value, NostrData, setNostrData){
   if (NostrData.contacts[0] !== undefined){
     NostrData.contacts[0].push(["p",value.pubkey]);
-    NostrData.data.pubkey = NostrData.pkey;
-    NostrData.data.content = "";
-    NostrData.data.kind = 3;
-    NostrData.data.created_at = Math.floor(Date.now() / 1000);
     NostrData.data.tags = NostrData.contacts[0];
-    NostrData.filter_home["#p"] = NostrData.filter_home["#p"].concat(value.pubkey);
-    setNostrData({...NostrData,data:{...NostrData.data}});
+  }else{
+    NostrData.contacts = [[["p",value.pubkey]]];
+    NostrData.data.tags = [["p",value.pubkey]];
   }
+  NostrData.data.pubkey = NostrData.pkey;
+  NostrData.data.content = "";
+  NostrData.data.kind = 3;
+  NostrData.data.created_at = Math.floor(Date.now() / 1000);
+  NostrData.filter_home["#p"] = NostrData.filter_home["#p"].concat(value.pubkey);
+  setNostrData({...NostrData,data:{...NostrData.data}});
+  console.log("Add",  NostrData.data);
 }
 function handleOnDM(user_name, value, NostrData, setNostrData){
   NostrData.directMessage.name    = '@'+user_name;

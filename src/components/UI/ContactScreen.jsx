@@ -75,7 +75,6 @@ export const ContactScreen = () => {
     }else{
       setjsonData(NostrData.contacts);
     }
-    console.log("Contacts", NostrData.contacts);
   },[NostrData, CallbackJSON]);
 
   return (

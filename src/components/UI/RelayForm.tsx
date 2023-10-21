@@ -47,6 +47,7 @@ const RelayListForm = (props:Inputs) => {
   } = useForm<Inputs>();
   const onSubmit: SubmitHandler<Inputs> = (data) => {
     let index = props.index;
+    let url = data.url;
     NostrData.relay.splice(index, 1);
     setNostrData({...NostrData});
   }
@@ -210,7 +211,7 @@ export const RelayForm = () => {
     if (data !== null){
       let relay = data.findLast((element:_kind10002_tags) => element !== null);
       if (relay !== undefined){
-        NostrData.relay = relay;
+        NostrData.relay = [relay];
         setjsonData(NostrData.relay);
       }
     }else{

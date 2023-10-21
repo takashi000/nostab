@@ -334,9 +334,18 @@ const WebSocketNostrListener = () => {
 
   const [prevSubscr, setprevSubscr] = useState(null);
   useEffect(() => {
+    let ignore_subscription_id = "";
+    if(NostrData.filter_home !== null && prevSubscr === 3 && SubscrState !== 3){
+      // ホームタブ空ほかのタブに遷移したとき、タイムラインを削除する
+      let date = new Date();
+      ignore_subscription_id = NostrData.subscription_id.home;
+      setMessageHistory((prev) => prev.filter((word) => word[1] !== ignore_subscription_id));
+      NostrData.filter_home.until = Math.floor(date / 1000);
+      setNostrData({...NostrData});
+    }
     if(NostrData.filter_search !== null && prevSubscr === 4 && SubscrState !== 4){
       // 検索タブからほかのタブに遷移したとき、検索結果を削除する
-      let ignore_subscription_id = NostrData.subscription_id.search;
+      ignore_subscription_id = NostrData.subscription_id.search;
       setMessageHistory((prev) => prev.filter((word) => word[1] !== ignore_subscription_id));
       setNostrData({...NostrData, filter_search: null});
     }
